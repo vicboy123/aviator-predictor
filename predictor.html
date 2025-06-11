@@ -33,7 +33,7 @@
       margin-bottom: 10px;
     }
     #prediction {
-      font-size: 48px;
+      font-size: 36px;
       color: #00ff99;
       font-weight: bold;
       margin: 15px 0;
@@ -67,14 +67,12 @@
       padding: 5px 0;
       border-bottom: 1px solid #333;
     }
-
     .play-button {
       margin-top: 40px;
     }
-
     @media (max-width: 600px) {
       h1 { font-size: 22px; }
-      #prediction { font-size: 36px; }
+      #prediction { font-size: 30px; }
       button { font-size: 14px; padding: 12px 24px; }
     }
   </style>
@@ -85,11 +83,6 @@
   <div id="ai-status">AI scanning patterns...</div>
   <div id="prediction">--</div>
   <button onclick="generatePrediction()">Predict</button>
-
-  <div style="margin-top: 20px;">
-    <input type="number" id="manualCrashInput" step="0.01" placeholder="Enter crash value" style="padding: 8px; width: 180px; border-radius: 6px; border: 1px solid #ccc;">
-    <button onclick="addManualCrash()">Add</button>
-  </div>
 
   <div id="history">
     <h3>📈 Prediction History</h3>
@@ -104,30 +97,20 @@
 
   <script>
     const historyList = [];
-    window.aviatorHistory = [];
+    window.aviatorHistory = JSON.parse(localStorage.getItem('aviatorCrashHistory') || "[]");
 
-    // Load previous history from localStorage
-    const saved = localStorage.getItem('aviatorCrashHistory');
-    if (saved) {
-      try {
-        window.aviatorHistory = JSON.parse(saved);
-      } catch (e) {
-        console.error("History load error:", e);
-      }
-    }
+    function smartCrashPrediction(history) {
+      if (history.length < 5) return ["1.00", "2.00"];
 
-    function predictCrash(prev1, prev2) {
-      const intercept = 0.5;
-      const coef1 = 0.6;
-      const coef2 = 0.3;
-      return intercept + coef1 * prev1 + coef2 * prev2;
-    }
-
-    function predictRange(center) {
-      const margin = 0.6;
-      const lower = Math.max(1.00, center - margin);
-      const upper = center + margin;
-      return [lower.toFixed(2), upper.toFixed(2)];
+      const last5 = history.slice(-5);
+      const avg = last5.reduce((a, b) => a + b, 0) / last5.length;
+      const slope = last5[4] - last5[0];
+      const base = avg + (slope * 0.4);
+      const noise = (Math.random() * 0.3 - 0.15);
+      const predicted = base + noise;
+      const min = Math.max(1.00, predicted - 0.3).toFixed(2);
+      const max = (predicted + 0.3).toFixed(2);
+      return [min, max];
     }
 
     function generatePrediction() {
@@ -135,62 +118,26 @@
       document.getElementById('prediction').innerText = "--";
 
       setTimeout(() => {
-        const newCrash = (Math.random() * 5 + 1).toFixed(2);
-        const crashValue = parseFloat(newCrash);
-        window.aviatorHistory.push(crashValue);
+        const simulatedCrash = (Math.random() * 4 + 1).toFixed(2);
+        const crashVal = parseFloat(simulatedCrash);
+        window.aviatorHistory.push(crashVal);
         if (window.aviatorHistory.length > 50) window.aviatorHistory.shift();
-
         localStorage.setItem('aviatorCrashHistory', JSON.stringify(window.aviatorHistory));
 
-        let predictionText;
-        if (window.aviatorHistory.length >= 3) {
-          const prev1 = window.aviatorHistory[window.aviatorHistory.length - 2];
-          const prev2 = window.aviatorHistory[window.aviatorHistory.length - 3];
-          const center = predictCrash(prev1, prev2);
-          const [lower, upper] = predictRange(center);
-          predictionText = `${lower}x – ${upper}x`;
-        } else {
-          predictionText = `${crashValue.toFixed(2)}x`;
-        }
+        const [min, max] = smartCrashPrediction(window.aviatorHistory);
+        const prediction = `${min}x – ${max}x`;
 
-        document.getElementById('prediction').innerText = predictionText;
+        document.getElementById('prediction').innerText = prediction;
         document.getElementById('ai-status').innerText = "AI Prediction Complete ✅";
 
         const now = new Date().toLocaleTimeString();
-        historyList.unshift(`${now} → ${predictionText}`);
+        historyList.unshift(`${now} → ${prediction}`);
         if (historyList.length > 10) historyList.pop();
 
         document.getElementById("historyList").innerHTML = historyList
           .map(item => `<div class="history-item">${item}</div>`)
           .join("");
       }, 1000);
-    }
-
-    function addManualCrash() {
-      const input = document.getElementById("manualCrashInput");
-      const value = parseFloat(input.value);
-
-      if (isNaN(value) || value < 0.01) {
-        alert("Please enter a valid crash multiplier (e.g., 1.23)");
-        return;
-      }
-
-      window.aviatorHistory.push(value);
-      if (window.aviatorHistory.length > 50) window.aviatorHistory.shift();
-      localStorage.setItem('aviatorCrashHistory', JSON.stringify(window.aviatorHistory));
-
-      const now = new Date().toLocaleTimeString();
-      const predictionText = `${value.toFixed(2)}x (manual)`;
-
-      historyList.unshift(`${now} → ${predictionText}`);
-      if (historyList.length > 10) historyList.pop();
-
-      document.getElementById("historyList").innerHTML = historyList
-        .map(item => `<div class="history-item">${item}</div>`)
-        .join("");
-
-      input.value = "";
-      document.getElementById('ai-status').innerText = "Manual entry added ✅";
     }
   </script>
 </body>
