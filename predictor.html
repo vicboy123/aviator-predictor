@@ -86,6 +86,11 @@
   <div id="prediction">--</div>
   <button onclick="generatePrediction()">Predict</button>
 
+  <div style="margin-top: 20px;">
+    <input type="number" id="manualCrashInput" step="0.01" placeholder="Enter crash value" style="padding: 8px; width: 180px; border-radius: 6px; border: 1px solid #ccc;">
+    <button onclick="addManualCrash()">Add</button>
+  </div>
+
   <div id="history">
     <h3>📈 Prediction History</h3>
     <div id="historyList"></div>
@@ -99,33 +104,94 @@
 
   <script>
     const historyList = [];
+    window.aviatorHistory = [];
+
+    // Load previous history from localStorage
+    const saved = localStorage.getItem('aviatorCrashHistory');
+    if (saved) {
+      try {
+        window.aviatorHistory = JSON.parse(saved);
+      } catch (e) {
+        console.error("History load error:", e);
+      }
+    }
+
+    function predictCrash(prev1, prev2) {
+      const intercept = 0.5;
+      const coef1 = 0.6;
+      const coef2 = 0.3;
+      return intercept + coef1 * prev1 + coef2 * prev2;
+    }
+
+    function predictRange(center) {
+      const margin = 0.6;
+      const lower = Math.max(1.00, center - margin);
+      const upper = center + margin;
+      return [lower.toFixed(2), upper.toFixed(2)];
+    }
 
     function generatePrediction() {
       document.getElementById('ai-status').innerText = "AI Analyzing...";
       document.getElementById('prediction').innerText = "--";
 
       setTimeout(() => {
-        const trend = Math.random();
-        let predicted;
-        if (trend < 0.2) {
-          predicted = (Math.random() * 2 + 1).toFixed(2);
-        } else if (trend < 0.6) {
-          predicted = (Math.random() * 4 + 2).toFixed(2);
+        const newCrash = (Math.random() * 5 + 1).toFixed(2);
+        const crashValue = parseFloat(newCrash);
+        window.aviatorHistory.push(crashValue);
+        if (window.aviatorHistory.length > 50) window.aviatorHistory.shift();
+
+        localStorage.setItem('aviatorCrashHistory', JSON.stringify(window.aviatorHistory));
+
+        let predictionText;
+        if (window.aviatorHistory.length >= 3) {
+          const prev1 = window.aviatorHistory[window.aviatorHistory.length - 2];
+          const prev2 = window.aviatorHistory[window.aviatorHistory.length - 3];
+          const center = predictCrash(prev1, prev2);
+          const [lower, upper] = predictRange(center);
+          predictionText = `${lower}x – ${upper}x`;
         } else {
-          predicted = (Math.random() * 8 + 5).toFixed(2);
+          predictionText = `${crashValue.toFixed(2)}x`;
         }
 
-        document.getElementById('prediction').innerText = predicted + "x";
+        document.getElementById('prediction').innerText = predictionText;
         document.getElementById('ai-status').innerText = "AI Prediction Complete ✅";
 
         const now = new Date().toLocaleTimeString();
-        historyList.unshift(`${now} → ${predicted}x`);
+        historyList.unshift(`${now} → ${predictionText}`);
         if (historyList.length > 10) historyList.pop();
 
-        const historyHTML = historyList.map(item => `<div class="history-item">${item}</div>`).join("");
-        document.getElementById("historyList").innerHTML = historyHTML;
-      }, 1200);
+        document.getElementById("historyList").innerHTML = historyList
+          .map(item => `<div class="history-item">${item}</div>`)
+          .join("");
+      }, 1000);
+    }
+
+    function addManualCrash() {
+      const input = document.getElementById("manualCrashInput");
+      const value = parseFloat(input.value);
+
+      if (isNaN(value) || value < 0.01) {
+        alert("Please enter a valid crash multiplier (e.g., 1.23)");
+        return;
+      }
+
+      window.aviatorHistory.push(value);
+      if (window.aviatorHistory.length > 50) window.aviatorHistory.shift();
+      localStorage.setItem('aviatorCrashHistory', JSON.stringify(window.aviatorHistory));
+
+      const now = new Date().toLocaleTimeString();
+      const predictionText = `${value.toFixed(2)}x (manual)`;
+
+      historyList.unshift(`${now} → ${predictionText}`);
+      if (historyList.length > 10) historyList.pop();
+
+      document.getElementById("historyList").innerHTML = historyList
+        .map(item => `<div class="history-item">${item}</div>`)
+        .join("");
+
+      input.value = "";
+      document.getElementById('ai-status').innerText = "Manual entry added ✅";
     }
   </script>
 </body>
-  </html>
+</html>
