@@ -70,10 +70,24 @@
     .play-button {
       margin-top: 40px;
     }
+    #chartContainer {
+      margin: 30px auto;
+      max-width: 600px;
+      background: #222;
+      border-radius: 10px;
+      padding: 10px;
+    }
+    canvas {
+      width: 100% !important;
+      height: 250px !important;
+      border-radius: 10px;
+      background: #121212;
+    }
     @media (max-width: 600px) {
       h1 { font-size: 22px; }
       #prediction { font-size: 30px; }
       button { font-size: 14px; padding: 12px 24px; }
+      canvas { height: 200px !important; }
     }
   </style>
 </head>
@@ -83,6 +97,10 @@
   <div id="ai-status">AI scanning patterns...</div>
   <div id="prediction">--</div>
   <button onclick="generatePrediction()">Predict</button>
+
+  <div id="chartContainer">
+    <canvas id="crashChart"></canvas>
+  </div>
 
   <div id="history">
     <h3>📈 Prediction History</h3>
@@ -96,49 +114,166 @@
   </div>
 
   <script>
-    const historyList = [];
+    // Storage and data
     window.aviatorHistory = JSON.parse(localStorage.getItem('aviatorCrashHistory') || "[]");
+    const historyList = [];
 
-    function smartCrashPrediction(history) {
+    // Prediction logic
+    function adaptiveWeightedPrediction(history) {
       if (history.length < 5) return ["1.00", "2.00"];
 
+      const decay = 0.7;
+      let weightSum = 0;
+      let weightedSum = 0;
+
+      for (let i = 0; i < 5; i++) {
+        const idx = history.length - 1 - i;
+        const weight = Math.pow(decay, i);
+        weightedSum += history[idx] * weight;
+        weightSum += weight;
+      }
+      const weightedAvg = weightedSum / weightSum;
+
       const last5 = history.slice(-5);
-      const avg = last5.reduce((a, b) => a + b, 0) / last5.length;
+      const mean = last5.reduce((a,b) => a+b, 0) / last5.length;
+      const variance = last5.reduce((a,b) => a + (b - mean) ** 2, 0) / last5.length;
+      const stddev = Math.sqrt(variance);
+
       const slope = last5[4] - last5[0];
-      const base = avg + (slope * 0.4);
-      const noise = (Math.random() * 0.3 - 0.15);
+      const base = weightedAvg + (slope * 0.5);
+
+      const noise = (Math.random() * stddev * 0.6) - (stddev * 0.3);
       const predicted = base + noise;
-      const min = Math.max(1.00, predicted - 0.3).toFixed(2);
-      const max = (predicted + 0.3).toFixed(2);
+
+      const rangePadding = Math.max(0.2, stddev * 1.2);
+
+      const min = Math.max(1.00, predicted - rangePadding).toFixed(2);
+      const max = (predicted + rangePadding).toFixed(2);
+
       return [min, max];
     }
 
+    // Chart setup
+    const ctx = document.getElementById('crashChart').getContext('2d');
+    let crashChart;
+
+    function drawChart(history, predictedRange) {
+      const labels = history.map((_, i) => i + 1);
+      const crashData = history;
+      const [min, max] = predictedRange;
+      const predictedMid = ((parseFloat(min) + parseFloat(max)) / 2).toFixed(2);
+
+      if (crashChart) {
+        crashChart.destroy();
+      }
+
+      crashChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [
+            {
+              label: 'Crash Points',
+              data: crashData,
+              borderColor: '#00ff99',
+              backgroundColor: 'rgba(0, 255, 153, 0.2)',
+              fill: true,
+              tension: 0.3,
+              pointRadius: 3,
+            },
+            {
+              label: 'Predicted Range',
+              data: Array(history.length - 1).fill(null).concat([min, max]),
+              borderColor: '#ff0040',
+              backgroundColor: 'rgba(255, 0, 64, 0.2)',
+              fill: false,
+              borderDash: [5,5],
+              pointRadius: 0,
+              stepped: true,
+            }
+          ]
+        },
+        options: {
+          animation: false,
+          responsive: true,
+          scales: {
+            y: {
+              min: 0,
+              max: Math.max(...history, max) + 2,
+              ticks: {
+                color: '#ccc'
+              },
+              grid: {
+                color: '#333'
+              }
+            },
+            x: {
+              ticks: {
+                color: '#ccc'
+              },
+              grid: {
+                color: '#333'
+              }
+            }
+          },
+          plugins: {
+            legend: {
+              labels: {
+                color: '#fff'
+              }
+            },
+            tooltip: {
+              enabled: true
+            }
+          }
+        }
+      });
+    }
+
+    // Generate Prediction and update UI
     function generatePrediction() {
       document.getElementById('ai-status').innerText = "AI Analyzing...";
       document.getElementById('prediction').innerText = "--";
 
       setTimeout(() => {
+        // Simulate a new crash point for demo (replace this with real data if you have)
         const simulatedCrash = (Math.random() * 4 + 1).toFixed(2);
         const crashVal = parseFloat(simulatedCrash);
         window.aviatorHistory.push(crashVal);
         if (window.aviatorHistory.length > 50) window.aviatorHistory.shift();
         localStorage.setItem('aviatorCrashHistory', JSON.stringify(window.aviatorHistory));
 
-        const [min, max] = smartCrashPrediction(window.aviatorHistory);
+        // Predict
+        const [min, max] = adaptiveWeightedPrediction(window.aviatorHistory);
         const prediction = `${min}x – ${max}x`;
 
         document.getElementById('prediction').innerText = prediction;
         document.getElementById('ai-status').innerText = "AI Prediction Complete ✅";
 
+        // Update history text
         const now = new Date().toLocaleTimeString();
         historyList.unshift(`${now} → ${prediction}`);
         if (historyList.length > 10) historyList.pop();
-
         document.getElementById("historyList").innerHTML = historyList
           .map(item => `<div class="history-item">${item}</div>`)
           .join("");
+
+        // Draw chart
+        drawChart(window.aviatorHistory, [min, max]);
       }, 1000);
     }
+
+    // Load Chart.js from CDN dynamically
+    (function loadChartJs() {
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/chart.js';
+      script.onload = () => {
+        if(window.aviatorHistory.length > 0){
+          drawChart(window.aviatorHistory, adaptiveWeightedPrediction(window.aviatorHistory));
+        }
+      };
+      document.head.appendChild(script);
+    })();
   </script>
 </body>
 </html>
