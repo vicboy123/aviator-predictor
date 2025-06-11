@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Aviator Predictor AI</title>
+  <style>
+    body {
+      background-color: #121212;
+      color: #fff;
+      font-family: 'Segoe UI', sans-serif;
+      text-align: center;
+      padding: 20px;
+      margin: 0;
+    }
+    h1 {
+      color: #ff0040;
+      font-size: 28px;
+      margin-bottom: 10px;
+    }
+    #plane {
+      font-size: 50px;
+      animation: fly 3s infinite linear;
+      margin-bottom: 10px;
+    }
+    @keyframes fly {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(100px); }
+    }
+    #ai-status {
+      color: #ccc;
+      font-size: 14px;
+      margin-bottom: 10px;
+    }
+    #prediction {
+      font-size: 48px;
+      color: #00ff99;
+      font-weight: bold;
+      margin: 15px 0;
+    }
+    button {
+      padding: 14px 30px;
+      font-size: 16px;
+      background: #ff0040;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    button:hover {
+      background-color: #e60036;
+    }
+    #history {
+      margin-top: 30px;
+      text-align: left;
+      max-width: 400px;
+      margin-left: auto;
+      margin-right: auto;
+      font-size: 14px;
+    }
+    #history h3 {
+      margin-bottom: 5px;
+      color: #ffcc00;
+    }
+    .history-item {
+      padding: 5px 0;
+      border-bottom: 1px solid #333;
+    }
+
+    .play-button {
+      margin-top: 40px;
+    }
+
+    @media (max-width: 600px) {
+      h1 { font-size: 22px; }
+      #prediction { font-size: 36px; }
+      button { font-size: 14px; padding: 12px 24px; }
+    }
+  </style>
+</head>
+<body>
+  <h1>🛩️ Aviator Predictor AI</h1>
+  <div id="plane">✈️</div>
+  <div id="ai-status">AI scanning patterns...</div>
+  <div id="prediction">--</div>
+  <button onclick="generatePrediction()">Predict</button>
+
+  <div id="history">
+    <h3>📈 Prediction History</h3>
+    <div id="historyList"></div>
+  </div>
+
+  <div class="play-button">
+    <a href="https://www.betway.co.za/lobby/casino-games/launchgame/casino-games/trending/aviator" target="_blank">
+      <button>🎮 Play Real Aviator on Betway</button>
+    </a>
+  </div>
+
+  <script>
+    const historyList = [];
+
+    function generatePrediction() {
+      document.getElementById('ai-status').innerText = "AI Analyzing...";
+      document.getElementById('prediction').innerText = "--";
+
+      setTimeout(() => {
+        const trend = Math.random();
+        let predicted;
+        if (trend < 0.2) {
+          predicted = (Math.random() * 2 + 1).toFixed(2);
+        } else if (trend < 0.6) {
+          predicted = (Math.random() * 4 + 2).toFixed(2);
+        } else {
+          predicted = (Math.random() * 8 + 5).toFixed(2);
+        }
+
+        document.getElementById('prediction').innerText = predicted + "x";
+        document.getElementById('ai-status').innerText = "AI Prediction Complete ✅";
+
+        const now = new Date().toLocaleTimeString();
+        historyList.unshift(`${now} → ${predicted}x`);
+        if (historyList.length > 10) historyList.pop();
+
+        const historyHTML = historyList.map(item => `<div class="history-item">${item}</div>`).join("");
+        document.getElementById("historyList").innerHTML = historyHTML;
+      }, 1200);
+    }
+  </script>
+</body>
+  </html>
