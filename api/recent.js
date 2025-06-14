@@ -1,8 +1,13 @@
-export const crashHistory = [];
+// pages/api/recent.js
+
+let savedPredictions = [];
 
 export default function handler(req, res) {
-  res.status(200).json({
-    recent: crashHistory.slice(0, 20),
-    total: crashHistory.length
-  });
+  if (req.method === 'GET') {
+    res.status(200).json(savedPredictions);
+  } else {
+    res.status(405).json({ message: "Method not allowed" });
+  }
 }
+
+// You can link this with `save.js` by using a shared store or database for persistence.
