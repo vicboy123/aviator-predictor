@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Aviator Predictor AI</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body {
       background-color: #121212;
@@ -14,31 +13,37 @@
       padding: 20px;
       margin: 0;
     }
+
     h1 {
       color: #ff0040;
       font-size: 28px;
       margin-bottom: 10px;
     }
+
     #plane {
       font-size: 50px;
       animation: fly 3s infinite linear;
       margin-bottom: 10px;
     }
+
     @keyframes fly {
       0% { transform: translateX(0); }
       100% { transform: translateX(100px); }
     }
+
     #ai-status {
       color: #ccc;
       font-size: 14px;
       margin-bottom: 10px;
     }
+
     #prediction {
       font-size: 48px;
       color: #00ff99;
       font-weight: bold;
       margin: 15px 0;
     }
+
     button {
       padding: 14px 30px;
       font-size: 16px;
@@ -47,11 +52,13 @@
       border: none;
       border-radius: 8px;
       cursor: pointer;
-      margin-top: 10px;
+      margin: 10px;
     }
+
     button:hover {
       background-color: #e60036;
     }
+
     #history {
       margin-top: 30px;
       text-align: left;
@@ -60,17 +67,21 @@
       margin-right: auto;
       font-size: 14px;
     }
+
     #history h3 {
       margin-bottom: 5px;
       color: #ffcc00;
     }
+
     .history-item {
       padding: 5px 0;
       border-bottom: 1px solid #333;
     }
+
     .play-button {
       margin-top: 40px;
     }
+
     @media (max-width: 600px) {
       h1 { font-size: 22px; }
       #prediction { font-size: 36px; }
@@ -79,16 +90,15 @@
   </style>
 </head>
 <body>
+
   <h1>🛩️ Aviator Predictor AI</h1>
   <div id="plane">✈️</div>
   <div id="ai-status">AI scanning patterns...</div>
   <div id="prediction">--</div>
-  <button onclick="generatePrediction()">🎯 Predict</button>
 
-  <div style="margin-top: 30px;">
-    <h3 style="color: #00ff99;">📉 Crash History Chart</h3>
-    <canvas id="crashChart" width="350" height="150"></canvas>
-    <p id="trendDirection" style="margin-top: 10px; font-size: 16px; color: #ffaa00;"></p>
+  <div>
+    <button onclick="onPredict()">🔮 Predict Now</button>
+    <button id="auto-btn" onclick="toggleAutoPlay()">▶️ Start Auto-Predict</button>
   </div>
 
   <div id="history">
@@ -102,125 +112,7 @@
     </a>
   </div>
 
-  <script>
-    const historyList = [];
-    window.aviatorHistory = JSON.parse(localStorage.getItem('aviatorHistory') || '[]');
+  <script src="/script.js"></script>
 
-    function saveHistory() {
-      localStorage.setItem('aviatorHistory', JSON.stringify(window.aviatorHistory));
-    }
-
-    function addManualCrash(value) {
-      const crashValue = parseFloat(value);
-      if (!isNaN(crashValue)) {
-        window.aviatorHistory.push(crashValue);
-        saveHistory();
-        updateChart();
-        updateTrendIndicator();
-      }
-    }
-
-    function calculateEMA(data, alpha = 0.5) {
-      if (data.length === 0) return 0;
-      let ema = data[0];
-      for (let i = 1; i < data.length; i++) {
-        ema = alpha * data[i] + (1 - alpha) * ema;
-      }
-      return parseFloat(ema.toFixed(2));
-    }
-
-    function classifyRisk(emaValue) {
-      if (emaValue >= 4) return "✅ Safe";
-      if (emaValue >= 2) return "⚠️ Neutral";
-      return "❌ Risky";
-    }
-
-    function generateSmartPrediction() {
-      const history = window.aviatorHistory;
-      if (history.length < 3) {
-        return { prediction: (Math.random() * 2 + 1).toFixed(2), risk: "⚠️ Unknown" };
-      }
-
-      const ema = calculateEMA(history.slice(-10));
-      const fluctuation = (Math.random() * 1.5).toFixed(2);
-      const predicted = parseFloat(ema) + parseFloat(fluctuation);
-      const prediction = predicted.toFixed(2);
-      const risk = classifyRisk(ema);
-
-      return { prediction, risk };
-    }
-
-    function generatePrediction() {
-      document.getElementById('ai-status').innerText = "AI Analyzing...";
-      document.getElementById('prediction').innerText = "--";
-
-      setTimeout(() => {
-        const { prediction, risk } = generateSmartPrediction();
-
-        document.getElementById('prediction').innerText = `${prediction}x ${risk}`;
-        document.getElementById('ai-status').innerText = "AI Prediction Complete ✅";
-
-        const now = new Date().toLocaleTimeString();
-        historyList.unshift(`${now} → ${prediction}x ${risk}`);
-        if (historyList.length > 10) historyList.pop();
-
-        document.getElementById("historyList").innerHTML =
-          historyList.map(item => `<div class="history-item">${item}</div>`).join("");
-
-        updateChart();
-        updateTrendIndicator();
-      }, 1200);
-    }
-
-    let chart;
-    function updateChart() {
-      const ctx = document.getElementById('crashChart').getContext('2d');
-      const data = window.aviatorHistory.slice(-10);
-      const labels = data.map((_, i) => `#${i + 1}`);
-
-      if (!chart) {
-        chart = new Chart(ctx, {
-          type: 'line',
-          data: {
-            labels,
-            datasets: [{
-              label: 'Crash Points',
-              data,
-              borderColor: '#00ff99',
-              backgroundColor: 'rgba(0, 255, 153, 0.1)',
-              tension: 0.2
-            }]
-          },
-          options: {
-            scales: {
-              y: { beginAtZero: true }
-            }
-          }
-        });
-      } else {
-        chart.data.labels = labels;
-        chart.data.datasets[0].data = data;
-        chart.update();
-      }
-    }
-
-    function updateTrendIndicator() {
-      const hist = window.aviatorHistory.slice(-10);
-      if (hist.length < 2) {
-        document.getElementById('trendDirection').innerText = "Not enough data for trend";
-        return;
-      }
-
-      const trend = hist[hist.length - 1] - hist[0];
-      let direction = trend > 0 ? "📈 Increasing trend" : (trend < 0 ? "📉 Decreasing trend" : "➖ No trend");
-      document.getElementById('trendDirection').innerText = `Trend: ${direction}`;
-    }
-
-    // Initialize chart and trend if history exists
-    window.onload = () => {
-      updateChart();
-      updateTrendIndicator();
-    };
-  </script>
 </body>
-        </html>
+</html>
