@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Aviator Predictor</title>
+  <title>Aviator Predictor - Manual Input</title>
 </head>
 <body>
   <h1>Aviator Predictor</h1>
@@ -10,7 +10,14 @@
   <p>Status: <span id="status">Ready</span></p>
   <h2>Prediction: <span id="prediction">--</span></h2>
 
-  <button onclick="getPrediction()">Get Prediction</button>
+  <div>
+    <label for="manualInput">Enter your own multiplier:</label><br />
+    <input type="number" id="manualInput" step="0.01" min="1" max="100" placeholder="e.g. 2.5" />
+    <button onclick="useManualInput()">Use Manual</button>
+  </div>
+
+  <br />
+  <button onclick="getPrediction()">Get AI Prediction</button>
 
   <h3>History</h3>
   <ul id="history"></ul>
@@ -34,7 +41,7 @@
         status.textContent = 'Success';
 
         const time = new Date().toLocaleTimeString();
-        history.unshift(`${time} - ${data.prediction}x`);
+        history.unshift(`${time} - AI: ${data.prediction}x`);
         if (history.length > 10) history.pop();
 
         historyList.innerHTML = history.map(item => `<li>${item}</li>`).join('');
@@ -42,6 +49,27 @@
         status.textContent = 'Error';
         console.error(err);
       }
+    }
+
+    function useManualInput() {
+      const input = document.getElementById('manualInput').value;
+      const prediction = document.getElementById('prediction');
+      const status = document.getElementById('status');
+      const historyList = document.getElementById('history');
+
+      if (!input || isNaN(input) || input < 1) {
+        status.textContent = 'Invalid input ❌';
+        return;
+      }
+
+      prediction.textContent = parseFloat(input).toFixed(2) + 'x';
+      status.textContent = 'Manual prediction set ✅';
+
+      const time = new Date().toLocaleTimeString();
+      history.unshift(`${time} - Manual: ${parseFloat(input).toFixed(2)}x`);
+      if (history.length > 10) history.pop();
+
+      historyList.innerHTML = history.map(item => `<li>${item}</li>`).join('');
     }
   </script>
 </body>
