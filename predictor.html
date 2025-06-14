@@ -3,205 +3,96 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Aviator Predictor AI</title>
+  <title>Aviator Predictor</title>
   <style>
     body {
-      background-color: #121212;
+      background: #1a1a1a;
       color: #fff;
-      font-family: 'Segoe UI', sans-serif;
+      font-family: Arial, sans-serif;
       text-align: center;
-      padding: 20px;
-      margin: 0;
+      padding: 30px;
     }
-
     h1 {
       color: #ff0040;
-      font-size: 28px;
     }
-
-    #plane {
-      font-size: 50px;
-      margin-bottom: 10px;
-    }
-
-    .fly {
-      animation: flyPlane 1s ease-in-out;
-    }
-
-    @keyframes flyPlane {
-      0%   { transform: translateX(0) rotate(0deg); opacity: 1; }
-      50%  { transform: translateX(100px) rotate(10deg); opacity: 0.7; }
-      100% { transform: translateX(0) rotate(0deg); opacity: 1; }
-    }
-
-    #ai-status {
-      font-size: 14px;
-      color: #ccc;
-    }
-
     #prediction {
       font-size: 48px;
-      font-weight: bold;
       color: #00ff99;
       margin: 20px 0;
     }
-
-    .pop {
-      animation: popEffect 0.3s ease;
+    #status {
+      color: #bbb;
+      font-size: 14px;
     }
-
-    @keyframes popEffect {
-      0%   { transform: scale(1); opacity: 1; }
-      50%  { transform: scale(1.5); opacity: 0.6; }
-      100% { transform: scale(1); opacity: 1; }
-    }
-
     button {
-      padding: 14px 30px;
+      padding: 12px 24px;
       font-size: 16px;
-      background: #ff0040;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
       margin: 10px;
+      background: #ff0040;
+      border: none;
+      border-radius: 5px;
+      color: white;
+      cursor: pointer;
     }
-
     button:hover {
-      background-color: #e60036;
+      background: #e60036;
     }
-
-    .active {
-      box-shadow: 0 0 10px #00ff99;
-    }
-
-    #history, #leaderboard {
+    #history {
       margin-top: 30px;
-      text-align: left;
       max-width: 400px;
       margin-left: auto;
       margin-right: auto;
       font-size: 14px;
+      text-align: left;
     }
-
-    #history h3, #leaderboard h3 {
-      color: #ffcc00;
-      margin-bottom: 5px;
-    }
-
-    .history-item, .leaderboard-item {
-      padding: 5px 0;
+    .history-item {
       border-bottom: 1px solid #333;
-    }
-
-    .play-button {
-      margin-top: 40px;
-    }
-
-    @media (max-width: 600px) {
-      h1 { font-size: 22px; }
-      #prediction { font-size: 36px; }
-      button { font-size: 14px; padding: 12px 24px; }
+      padding: 5px 0;
     }
   </style>
 </head>
 <body>
 
-  <h1>🛩️ Aviator Predictor AI</h1>
-  <div id="plane">✈️</div>
-  <div id="ai-status">AI scanning patterns...</div>
+  <h1>🛩️ Aviator Predictor</h1>
+  <div id="status">Ready to predict</div>
   <div id="prediction">--</div>
-
-  <div>
-    <button onclick="onPredict()">🔮 Predict Now</button>
-    <button id="auto-btn" onclick="toggleAutoPlay()">▶️ Start Auto-Predict</button>
-  </div>
+  <button onclick="getPrediction()">🔮 Predict</button>
 
   <div id="history">
-    <h3>📈 Prediction History</h3>
+    <h3>History</h3>
     <div id="historyList"></div>
   </div>
 
-  <div id="leaderboard">
-    <h3>🏆 Leaderboard - Top Predictions</h3>
-    <div id="leaderboardList"></div>
-  </div>
-
-  <div class="play-button">
-    <a href="https://www.betway.co.za/lobby/casino-games/launchgame/casino-games/trending/aviator" target="_blank">
-      <button>🎮 Play Real Aviator on Betway</button>
-    </a>
-  </div>
-
   <script>
-    const historyList = [];
-    const topPredictions = [];
-    let autoPlay = false;
-    let intervalId = null;
+    const history = [];
 
-    async function onPredict() {
+    async function getPrediction() {
+      const status = document.getElementById('status');
       const predictionEl = document.getElementById('prediction');
-      const statusEl = document.getElementById('ai-status');
-      const historyEl = document.getElementById('historyList');
-      const leaderboardEl = document.getElementById('leaderboardList');
-      const plane = document.getElementById('plane');
+      const historyList = document.getElementById('historyList');
 
-      statusEl.innerText = "AI Analyzing...";
-      predictionEl.innerText = "--";
-      plane.classList.add("fly");
+      status.textContent = 'Fetching prediction...';
+      predictionEl.textContent = '--';
 
       try {
         const res = await fetch('/api/predict');
         const data = await res.json();
-        const predictionValue = parseFloat(data.prediction);
-        const predicted = predictionValue.toFixed(2) + "x";
+        const value = data.prediction + 'x';
 
-        setTimeout(() => {
-          predictionEl.innerText = predicted;
-          predictionEl.classList.add("pop");
-          setTimeout(() => predictionEl.classList.remove("pop"), 500);
-          plane.classList.remove("fly");
+        predictionEl.textContent = value;
+        status.textContent = 'Prediction successful ✅';
 
-          statusEl.innerText = "AI Prediction Complete ✅";
+        const time = new Date().toLocaleTimeString();
+        history.unshift(`${time} → ${value}`);
+        if (history.length > 10) history.pop();
 
-          const now = new Date().toLocaleTimeString();
-          historyList.unshift(`${now} → ${predicted}`);
-          if (historyList.length > 10) historyList.pop();
-
-          historyEl.innerHTML = historyList
-            .map(item => `<div class="history-item">${item}</div>`)
-            .join("");
-
-          // Update leaderboard
-          topPredictions.push(predictionValue);
-          topPredictions.sort((a, b) => b - a);
-          const topFive = topPredictions.slice(0, 5);
-
-          leaderboardEl.innerHTML = topFive
-            .map((val, i) => `<div class="leaderboard-item">#${i + 1}: ${val.toFixed(2)}x</div>`)
-            .join("");
-
-        }, 800);
+        historyList.innerHTML = history
+          .map(item => `<div class="history-item">${item}</div>`)
+          .join("");
 
       } catch (err) {
-        console.error("Prediction fetch error:", err);
-        statusEl.innerText = "Error fetching prediction ❌";
-        plane.classList.remove("fly");
-      }
-    }
-
-    function toggleAutoPlay() {
-      const btn = document.getElementById("auto-btn");
-      autoPlay = !autoPlay;
-
-      if (autoPlay) {
-        btn.innerText = "🛑 Stop Auto-Predict";
-        btn.classList.add("active");
-        intervalId = setInterval(onPredict, 6000);
-      } else {
-        btn.innerText = "▶️ Start Auto-Predict";
-        btn.classList.remove("active");
-        clearInterval(intervalId);
+        status.textContent = 'Error getting prediction ❌';
+        console.error(err);
       }
     }
   </script>
