@@ -3,7 +3,7 @@
 const historyList = [];
 let autoPlay = false;
 let intervalId = null;
-
+y
 async function onPredict() {
   const predictionEl = document.getElementById('prediction');
   const statusEl = document.getElementById('ai-status');
