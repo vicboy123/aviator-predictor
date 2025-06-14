@@ -17,36 +17,43 @@
     h1 {
       color: #ff0040;
       font-size: 28px;
-      margin-bottom: 10px;
     }
 
     #plane {
       font-size: 50px;
       margin-bottom: 10px;
-      transition: transform 0.6s ease-in-out;
     }
 
     .fly {
-      transform: translateX(100px) rotate(10deg);
+      animation: flyPlane 1s ease-in-out;
+    }
+
+    @keyframes flyPlane {
+      0%   { transform: translateX(0) rotate(0deg); opacity: 1; }
+      50%  { transform: translateX(100px) rotate(10deg); opacity: 0.7; }
+      100% { transform: translateX(0) rotate(0deg); opacity: 1; }
     }
 
     #ai-status {
-      color: #ccc;
       font-size: 14px;
-      margin-bottom: 10px;
+      color: #ccc;
     }
 
     #prediction {
       font-size: 48px;
-      color: #00ff99;
       font-weight: bold;
-      margin: 15px 0;
-      transition: transform 0.3s ease, opacity 0.3s ease;
+      color: #00ff99;
+      margin: 20px 0;
     }
 
     .pop {
-      transform: scale(1.3);
-      opacity: 0.6;
+      animation: popEffect 0.3s ease;
+    }
+
+    @keyframes popEffect {
+      0%   { transform: scale(1); opacity: 1; }
+      50%  { transform: scale(1.5); opacity: 0.6; }
+      100% { transform: scale(1); opacity: 1; }
     }
 
     button {
@@ -58,7 +65,6 @@
       border-radius: 8px;
       cursor: pointer;
       margin: 10px;
-      transition: box-shadow 0.3s ease;
     }
 
     button:hover {
@@ -69,7 +75,7 @@
       box-shadow: 0 0 10px #00ff99;
     }
 
-    #history {
+    #history, #leaderboard {
       margin-top: 30px;
       text-align: left;
       max-width: 400px;
@@ -78,12 +84,12 @@
       font-size: 14px;
     }
 
-    #history h3 {
-      margin-bottom: 5px;
+    #history h3, #leaderboard h3 {
       color: #ffcc00;
+      margin-bottom: 5px;
     }
 
-    .history-item {
+    .history-item, .leaderboard-item {
       padding: 5px 0;
       border-bottom: 1px solid #333;
     }
@@ -116,13 +122,89 @@
     <div id="historyList"></div>
   </div>
 
+  <div id="leaderboard">
+    <h3>🏆 Leaderboard - Top Predictions</h3>
+    <div id="leaderboardList"></div>
+  </div>
+
   <div class="play-button">
     <a href="https://www.betway.co.za/lobby/casino-games/launchgame/casino-games/trending/aviator" target="_blank">
       <button>🎮 Play Real Aviator on Betway</button>
     </a>
   </div>
 
-  <script src="/script.js"></script>
+  <script>
+    const historyList = [];
+    const topPredictions = [];
+    let autoPlay = false;
+    let intervalId = null;
+
+    async function onPredict() {
+      const predictionEl = document.getElementById('prediction');
+      const statusEl = document.getElementById('ai-status');
+      const historyEl = document.getElementById('historyList');
+      const leaderboardEl = document.getElementById('leaderboardList');
+      const plane = document.getElementById('plane');
+
+      statusEl.innerText = "AI Analyzing...";
+      predictionEl.innerText = "--";
+      plane.classList.add("fly");
+
+      try {
+        const res = await fetch('/api/predict');
+        const data = await res.json();
+        const predictionValue = parseFloat(data.prediction);
+        const predicted = predictionValue.toFixed(2) + "x";
+
+        setTimeout(() => {
+          predictionEl.innerText = predicted;
+          predictionEl.classList.add("pop");
+          setTimeout(() => predictionEl.classList.remove("pop"), 500);
+          plane.classList.remove("fly");
+
+          statusEl.innerText = "AI Prediction Complete ✅";
+
+          const now = new Date().toLocaleTimeString();
+          historyList.unshift(`${now} → ${predicted}`);
+          if (historyList.length > 10) historyList.pop();
+
+          historyEl.innerHTML = historyList
+            .map(item => `<div class="history-item">${item}</div>`)
+            .join("");
+
+          // Update leaderboard
+          topPredictions.push(predictionValue);
+          topPredictions.sort((a, b) => b - a);
+          const topFive = topPredictions.slice(0, 5);
+
+          leaderboardEl.innerHTML = topFive
+            .map((val, i) => `<div class="leaderboard-item">#${i + 1}: ${val.toFixed(2)}x</div>`)
+            .join("");
+
+        }, 800);
+
+      } catch (err) {
+        console.error("Prediction fetch error:", err);
+        statusEl.innerText = "Error fetching prediction ❌";
+        plane.classList.remove("fly");
+      }
+    }
+
+    function toggleAutoPlay() {
+      const btn = document.getElementById("auto-btn");
+      autoPlay = !autoPlay;
+
+      if (autoPlay) {
+        btn.innerText = "🛑 Stop Auto-Predict";
+        btn.classList.add("active");
+        intervalId = setInterval(onPredict, 6000);
+      } else {
+        btn.innerText = "▶️ Start Auto-Predict";
+        btn.classList.remove("active");
+        clearInterval(intervalId);
+      }
+    }
+  </script>
 
 </body>
 </html>
