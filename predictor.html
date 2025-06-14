@@ -2,100 +2,47 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Aviator Predictor</title>
-  <style>
-    body {
-      background: #1a1a1a;
-      color: #fff;
-      font-family: Arial, sans-serif;
-      text-align: center;
-      padding: 30px;
-    }
-    h1 {
-      color: #ff0040;
-    }
-    #prediction {
-      font-size: 48px;
-      color: #00ff99;
-      margin: 20px 0;
-    }
-    #status {
-      color: #bbb;
-      font-size: 14px;
-    }
-    button {
-      padding: 12px 24px;
-      font-size: 16px;
-      margin: 10px;
-      background: #ff0040;
-      border: none;
-      border-radius: 5px;
-      color: white;
-      cursor: pointer;
-    }
-    button:hover {
-      background: #e60036;
-    }
-    #history {
-      margin-top: 30px;
-      max-width: 400px;
-      margin-left: auto;
-      margin-right: auto;
-      font-size: 14px;
-      text-align: left;
-    }
-    .history-item {
-      border-bottom: 1px solid #333;
-      padding: 5px 0;
-    }
-  </style>
 </head>
 <body>
+  <h1>Aviator Predictor</h1>
 
-  <h1>🛩️ Aviator Predictor</h1>
-  <div id="status">Ready to predict</div>
-  <div id="prediction">--</div>
-  <button onclick="getPrediction()">🔮 Predict</button>
+  <p>Status: <span id="status">Ready</span></p>
+  <h2>Prediction: <span id="prediction">--</span></h2>
 
-  <div id="history">
-    <h3>History</h3>
-    <div id="historyList"></div>
-  </div>
+  <button onclick="getPrediction()">Get Prediction</button>
+
+  <h3>History</h3>
+  <ul id="history"></ul>
 
   <script>
     const history = [];
 
     async function getPrediction() {
       const status = document.getElementById('status');
-      const predictionEl = document.getElementById('prediction');
-      const historyList = document.getElementById('historyList');
+      const prediction = document.getElementById('prediction');
+      const historyList = document.getElementById('history');
 
-      status.textContent = 'Fetching prediction...';
-      predictionEl.textContent = '--';
+      status.textContent = 'Fetching...';
+      prediction.textContent = '--';
 
       try {
         const res = await fetch('/api/predict');
         const data = await res.json();
-        const value = data.prediction + 'x';
 
-        predictionEl.textContent = value;
-        status.textContent = 'Prediction successful ✅';
+        prediction.textContent = data.prediction + 'x';
+        status.textContent = 'Success';
 
         const time = new Date().toLocaleTimeString();
-        history.unshift(`${time} → ${value}`);
+        history.unshift(`${time} - ${data.prediction}x`);
         if (history.length > 10) history.pop();
 
-        historyList.innerHTML = history
-          .map(item => `<div class="history-item">${item}</div>`)
-          .join("");
-
+        historyList.innerHTML = history.map(item => `<li>${item}</li>`).join('');
       } catch (err) {
-        status.textContent = 'Error getting prediction ❌';
+        status.textContent = 'Error';
         console.error(err);
       }
     }
   </script>
-
 </body>
 </html>
