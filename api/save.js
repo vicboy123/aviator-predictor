@@ -1,18 +1,26 @@
-let crashHistory = [];
+// pages/api/save.js
 
-export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method Not Allowed' });
+let savedPredictions = [];
+
+export default function handler(req, res) {
+  if (req.method === 'POST') {
+    const { prediction } = req.body;
+
+    if (!prediction) {
+      return res.status(400).json({ message: "Missing prediction" });
+    }
+
+    savedPredictions.unshift({
+      prediction,
+      time: new Date().toISOString(),
+    });
+
+    if (savedPredictions.length > 20) {
+      savedPredictions = savedPredictions.slice(0, 20);
+    }
+
+    res.status(200).json({ message: "Saved", prediction });
+  } else {
+    res.status(405).json({ message: "Method not allowed" });
   }
-
-  const { crash, time } = req.body;
-
-  if (!crash || isNaN(crash)) {
-    return res.status(400).json({ error: 'Invalid crash value' });
-  }
-
-  crashHistory.unshift({ crash: parseFloat(crash), time });
-  if (crashHistory.length > 100) crashHistory.pop();
-
-  return res.status(200).json({ success: true, recent: crashHistory.slice(0, 10) });
-      }
+}
