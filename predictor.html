@@ -3,132 +3,187 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Aviator Predictor + Crash Generator</title>
+  <title>Aviator Predictor + Betting + Save</title>
   <style>
     body {
-      background-color: #111;
+      background: #111;
       color: #fff;
       font-family: 'Segoe UI', sans-serif;
       text-align: center;
       padding: 30px;
     }
 
-    h1 {
-      color: #ff0040;
-      font-size: 26px;
+    h1 { color: #ff0040; }
+
+    input, button {
+      padding: 10px;
+      font-size: 16px;
+      border-radius: 6px;
+      border: none;
+      margin: 5px;
     }
 
-    #plane {
-      font-size: 40px;
-      animation: fly 2s infinite linear;
-      margin: 10px;
-    }
-
-    @keyframes fly {
-      0% { transform: translateX(0); }
-      100% { transform: translateX(120px); }
-    }
-
-    #prediction, #actual {
-      font-size: 42px;
-      margin: 15px 0;
-      color: #00ff99;
-    }
-
-    #status {
-      color: #ccc;
-      font-size: 14px;
+    input {
+      width: 250px;
+      border: 1px solid #444;
+      background: #222;
+      color: #fff;
     }
 
     button {
-      padding: 12px 25px;
-      font-size: 16px;
       background-color: #ff0040;
       color: #fff;
-      border: none;
-      border-radius: 8px;
-      margin-top: 10px;
       cursor: pointer;
     }
 
-    button:hover {
-      background-color: #e60036;
+    button:hover { background-color: #e60036; }
+
+    #status, #prediction, #result {
+      margin-top: 20px;
+      font-size: 24px;
     }
 
     #history {
       margin-top: 30px;
-      text-align: left;
       max-width: 400px;
       margin-left: auto;
       margin-right: auto;
       font-size: 14px;
-    }
-
-    #history h3 {
-      color: #ffcc00;
+      text-align: left;
     }
 
     .item {
       padding: 4px 0;
       border-bottom: 1px solid #333;
     }
+
+    #balance {
+      font-size: 20px;
+      margin: 15px 0;
+      color: #00ff99;
+    }
+
+    #resetBtn {
+      margin-top: 10px;
+      background-color: #444;
+    }
   </style>
 </head>
 <body>
 
-  <h1>🛩️ AI Crash Predictor</h1>
-  <div id="plane">✈️</div>
-  <div id="status">AI scanning pattern...</div>
-  <div><strong>AI Predicts:</strong></div>
-  <div id="prediction">--</div>
-  <button onclick="predict()">Predict</button>
+  <h1>🧠 Aviator Predictor + Betting</h1>
 
-  <div><strong>Actual Multiplier:</strong></div>
-  <div id="actual">--</div>
+  <div id="balance">💰 Balance: R1000</div>
+
+  <div>
+    <input id="inputData" type="text" placeholder="Last 5 multipliers (e.g. 1.2,2.4,3.1)" /><br>
+    <input id="betAmount" type="number" placeholder="Bet Amount (R)" /><br>
+    <input id="targetMultiplier" type="number" placeholder="Target Multiplier (e.g. 2.00)" step="0.01" /><br>
+    <button onclick="predictAndBet()">Predict & Bet</button>
+    <button id="resetBtn" onclick="resetAll()">🔁 Reset</button>
+  </div>
+
+  <div id="status">Enter data and start</div>
+  <div id="prediction">Prediction: --</div>
+  <div id="result">Result: --</div>
 
   <div id="history">
-    <h3>📊 History</h3>
+    <h3>📊 Round History</h3>
     <div id="historyList"></div>
   </div>
 
   <script>
-    const historyList = [];
+    let balance = 1000;
+    let historyList = [];
 
-    function generateCrashMultiplier() {
-      const rand = Math.random();
-      if (rand < 0.01) return 1.00;
-      return +(Math.floor((1 / (1 - rand)) * 100) / 100).toFixed(2);
+    // Load saved data
+    window.onload = function() {
+      const saved = localStorage.getItem("aviator_data");
+      if (saved) {
+        const data = JSON.parse(saved);
+        balance = data.balance || 1000;
+        historyList = data.history || [];
+        updateBalance();
+        updateHistory();
+      }
+    };
+
+    function saveData() {
+      localStorage.setItem("aviator_data", JSON.stringify({
+        balance,
+        history: historyList
+      }));
     }
 
-    function generatePrediction() {
-      // Mimic AI trend guess
-      const trend = Math.random();
-      if (trend < 0.2) return +(Math.random() * 1.5 + 1).toFixed(2);
-      else if (trend < 0.5) return +(Math.random() * 3 + 1.5).toFixed(2);
-      else return +(Math.random() * 6 + 2).toFixed(2);
+    function updateBalance() {
+      document.getElementById("balance").innerText = `💰 Balance: R${balance.toFixed(2)}`;
     }
 
-    function predict() {
-      document.getElementById("status").innerText = "🧠 AI analyzing...";
+    function updateHistory() {
+      document.getElementById("historyList").innerHTML = historyList.map(i => `<div class="item">${i}</div>`).join("");
+    }
+
+    function predictAndBet() {
+      const input = document.getElementById("inputData").value;
+      const parts = input.split(",").map(x => parseFloat(x.trim())).filter(x => !isNaN(x));
+      const bet = parseFloat(document.getElementById("betAmount").value);
+      const target = parseFloat(document.getElementById("targetMultiplier").value);
+
+      if (parts.length < 2 || isNaN(bet) || isNaN(target)) {
+        document.getElementById("status").innerText = "⚠️ Fill all fields correctly.";
+        return;
+      }
+
+      if (bet > balance || bet <= 0) {
+        document.getElementById("status").innerText = "❌ Invalid or insufficient bet.";
+        return;
+      }
+
+      document.getElementById("status").innerText = "🔍 Analyzing...";
       document.getElementById("prediction").innerText = "--";
-      document.getElementById("actual").innerText = "--";
+      document.getElementById("result").innerText = "--";
 
       setTimeout(() => {
-        const aiGuess = generatePrediction();
-        const real = generateCrashMultiplier();
+        const avg = parts.reduce((a, b) => a + b) / parts.length;
+        let predicted;
+        if (avg < 1.5) predicted = (Math.random() * 2 + 1).toFixed(2);
+        else if (avg < 3) predicted = (Math.random() * 3 + 1.5).toFixed(2);
+        else predicted = (Math.random() * 5 + 2.5).toFixed(2);
 
-        document.getElementById("prediction").innerText = aiGuess + "x";
-        document.getElementById("actual").innerText = real + "x";
-        document.getElementById("status").innerText = "✅ Prediction complete";
+        const rand = Math.random();
+        const actual = rand < 0.01 ? 1.00 : +(Math.floor((1 / (1 - rand)) * 100) / 100).toFixed(2);
+
+        let win = actual >= target;
+        let resultText = win ? `✅ WIN! You got R${(bet * target).toFixed(2)}` : `❌ Lost R${bet}`;
+        balance += win ? (bet * target) - bet : -bet;
+
+        document.getElementById("status").innerText = `🎯 Target: ${target}x`;
+        document.getElementById("prediction").innerText = `AI Predicts: ${predicted}x`;
+        document.getElementById("result").innerText = `💥 Crashed at: ${actual}x → ${resultText}`;
+        updateBalance();
 
         const now = new Date().toLocaleTimeString();
-        historyList.unshift(`${now} — Predicted: ${aiGuess}x | Real: ${real}x`);
+        historyList.unshift(`${now} → Bet: R${bet} @ ${target}x → Crash: ${actual}x → ${win ? 'WIN' : 'LOSE'}`);
         if (historyList.length > 10) historyList.pop();
 
-        document.getElementById("historyList").innerHTML = historyList.map(i => `<div class="item">${i}</div>`).join("");
-      }, 1200);
+        updateHistory();
+        saveData();
+      }, 1500);
+    }
+
+    function resetAll() {
+      if (confirm("Reset all data?")) {
+        balance = 1000;
+        historyList = [];
+        updateBalance();
+        updateHistory();
+        localStorage.removeItem("aviator_data");
+        document.getElementById("status").innerText = "🔄 Reset complete.";
+        document.getElementById("prediction").innerText = "--";
+        document.getElementById("result").innerText = "--";
+      }
     }
   </script>
 
 </body>
-</html>
+    </html>
