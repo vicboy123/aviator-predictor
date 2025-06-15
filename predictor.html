@@ -1,5 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html><html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -11,88 +10,82 @@
       font-family: 'Segoe UI', sans-serif;
       text-align: center;
       padding: 30px;
-    }
+    }h1 { color: #ff0040; }
 
-    h1 { color: #ff0040; }
+input, button {
+  padding: 10px;
+  font-size: 16px;
+  border-radius: 6px;
+  border: none;
+  margin: 5px;
+}
 
-    input, button {
-      padding: 10px;
-      font-size: 16px;
-      border-radius: 6px;
-      border: none;
-      margin: 5px;
-    }
+input {
+  width: 250px;
+  border: 1px solid #444;
+  background: #222;
+  color: #fff;
+}
 
-    input {
-      width: 250px;
-      border: 1px solid #444;
-      background: #222;
-      color: #fff;
-    }
+button {
+  background-color: #ff0040;
+  color: #fff;
+  cursor: pointer;
+}
 
-    button {
-      background-color: #ff0040;
-      color: #fff;
-      cursor: pointer;
-    }
+button:hover { background-color: #e60036; }
 
-    button:hover { background-color: #e60036; }
+#status, #prediction, #result {
+  margin-top: 20px;
+  font-size: 24px;
+}
 
-    #status, #prediction, #result {
-      margin-top: 20px;
-      font-size: 24px;
-    }
+#history {
+  margin-top: 30px;
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
+  font-size: 14px;
+  text-align: left;
+}
 
-    #history {
-      margin-top: 30px;
-      max-width: 400px;
-      margin-left: auto;
-      margin-right: auto;
-      font-size: 14px;
-      text-align: left;
-    }
+.item {
+  padding: 4px 0;
+  border-bottom: 1px solid #333;
+}
 
-    .item {
-      padding: 4px 0;
-      border-bottom: 1px solid #333;
-    }
+#balance {
+  font-size: 20px;
+  margin: 15px 0;
+  color: #00ff99;
+}
 
-    #balance {
-      font-size: 20px;
-      margin: 15px 0;
-      color: #00ff99;
-    }
+#resetBtn {
+  margin-top: 10px;
+  background-color: #444;
+}
 
-    #resetBtn {
-      margin-top: 10px;
-      background-color: #444;
-    }
+#streamStatus {
+  margin-top: 15px;
+  font-size: 14px;
+  color: #999;
+}
+
   </style>
 </head>
-<body>
-
-  <h1>🧠 Aviator Predictor + Betting</h1>
-
-  <div id="balance">💰 Balance: R1000</div>
-
-  <div>
+<body>  <h1>🧠 Aviator Predictor + Betting</h1>  <div id="balance">💰 Balance: R1000</div>  <div>
     <input id="inputData" type="text" placeholder="Last 5 multipliers (e.g. 1.2,2.4,3.1)" /><br>
     <input id="betAmount" type="number" placeholder="Bet Amount (R)" /><br>
     <input id="targetMultiplier" type="number" placeholder="Target Multiplier (e.g. 2.00)" step="0.01" /><br>
     <button onclick="predictAndBet()">Predict & Bet</button>
     <button id="resetBtn" onclick="resetAll()">🔁 Reset</button>
-  </div>
-
-  <div id="status">Enter data and start</div>
+  </div>  <div id="status">Enter data and start</div>
   <div id="prediction">Prediction: --</div>
   <div id="result">Result: --</div>
-
-  <div id="history">
+  <div id="streamStatus">Live: Not connected</div>  <div id="history">
     <h3>📊 Round History</h3>
     <div id="historyList"></div>
-  </div>
-
-  <script>
+  </div>  <script>
     let balance = 1000;
     let historyList = [];
 
@@ -106,6 +99,7 @@
         updateBalance();
         updateHistory();
       }
+      connectLiveData();
     };
 
     function saveData() {
@@ -183,7 +177,23 @@
         document.getElementById("result").innerText = "--";
       }
     }
-  </script>
 
-</body>
-    </html>
+    // Optional: Live crash multiplier stream listener (if server sends updates)
+    function connectLiveData() {
+      try {
+        const source = new EventSource("/api/stream");
+        source.onmessage = function(event) {
+          const data = JSON.parse(event.data);
+          if (data && data.crash) {
+            document.getElementById("streamStatus").innerText = `Live: Last crash ${data.crash}x`;
+          }
+        };
+        source.onerror = function() {
+          document.getElementById("streamStatus").innerText = "Live: Connection failed.";
+        };
+      } catch (e) {
+        document.getElementById("streamStatus").innerText = "Live: Not available.";
+      }
+    }
+  </script></body>
+</html>
