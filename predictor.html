@@ -2,75 +2,133 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Aviator Predictor - Manual Input</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Aviator Predictor + Crash Generator</title>
+  <style>
+    body {
+      background-color: #111;
+      color: #fff;
+      font-family: 'Segoe UI', sans-serif;
+      text-align: center;
+      padding: 30px;
+    }
+
+    h1 {
+      color: #ff0040;
+      font-size: 26px;
+    }
+
+    #plane {
+      font-size: 40px;
+      animation: fly 2s infinite linear;
+      margin: 10px;
+    }
+
+    @keyframes fly {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(120px); }
+    }
+
+    #prediction, #actual {
+      font-size: 42px;
+      margin: 15px 0;
+      color: #00ff99;
+    }
+
+    #status {
+      color: #ccc;
+      font-size: 14px;
+    }
+
+    button {
+      padding: 12px 25px;
+      font-size: 16px;
+      background-color: #ff0040;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      margin-top: 10px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #e60036;
+    }
+
+    #history {
+      margin-top: 30px;
+      text-align: left;
+      max-width: 400px;
+      margin-left: auto;
+      margin-right: auto;
+      font-size: 14px;
+    }
+
+    #history h3 {
+      color: #ffcc00;
+    }
+
+    .item {
+      padding: 4px 0;
+      border-bottom: 1px solid #333;
+    }
+  </style>
 </head>
 <body>
-  <h1>Aviator Predictor</h1>
 
-  <p>Status: <span id="status">Ready</span></p>
-  <h2>Prediction: <span id="prediction">--</span></h2>
+  <h1>🛩️ AI Crash Predictor</h1>
+  <div id="plane">✈️</div>
+  <div id="status">AI scanning pattern...</div>
+  <div><strong>AI Predicts:</strong></div>
+  <div id="prediction">--</div>
+  <button onclick="predict()">Predict</button>
 
-  <div>
-    <label for="manualInput">Enter your own multiplier:</label><br />
-    <input type="number" id="manualInput" step="0.01" min="1" max="100" placeholder="e.g. 2.5" />
-    <button onclick="useManualInput()">Use Manual</button>
+  <div><strong>Actual Multiplier:</strong></div>
+  <div id="actual">--</div>
+
+  <div id="history">
+    <h3>📊 History</h3>
+    <div id="historyList"></div>
   </div>
 
-  <br />
-  <button onclick="getPrediction()">Get AI Prediction</button>
-
-  <h3>History</h3>
-  <ul id="history"></ul>
-
   <script>
-    const history = [];
+    const historyList = [];
 
-    async function getPrediction() {
-      const status = document.getElementById('status');
-      const prediction = document.getElementById('prediction');
-      const historyList = document.getElementById('history');
-
-      status.textContent = 'Fetching...';
-      prediction.textContent = '--';
-
-      try {
-        const res = await fetch('/api/predict');
-        const data = await res.json();
-
-        prediction.textContent = data.prediction + 'x';
-        status.textContent = 'Success';
-
-        const time = new Date().toLocaleTimeString();
-        history.unshift(`${time} - AI: ${data.prediction}x`);
-        if (history.length > 10) history.pop();
-
-        historyList.innerHTML = history.map(item => `<li>${item}</li>`).join('');
-      } catch (err) {
-        status.textContent = 'Error';
-        console.error(err);
-      }
+    function generateCrashMultiplier() {
+      const rand = Math.random();
+      if (rand < 0.01) return 1.00;
+      return +(Math.floor((1 / (1 - rand)) * 100) / 100).toFixed(2);
     }
 
-    function useManualInput() {
-      const input = document.getElementById('manualInput').value;
-      const prediction = document.getElementById('prediction');
-      const status = document.getElementById('status');
-      const historyList = document.getElementById('history');
+    function generatePrediction() {
+      // Mimic AI trend guess
+      const trend = Math.random();
+      if (trend < 0.2) return +(Math.random() * 1.5 + 1).toFixed(2);
+      else if (trend < 0.5) return +(Math.random() * 3 + 1.5).toFixed(2);
+      else return +(Math.random() * 6 + 2).toFixed(2);
+    }
 
-      if (!input || isNaN(input) || input < 1) {
-        status.textContent = 'Invalid input ❌';
-        return;
-      }
+    function predict() {
+      document.getElementById("status").innerText = "🧠 AI analyzing...";
+      document.getElementById("prediction").innerText = "--";
+      document.getElementById("actual").innerText = "--";
 
-      prediction.textContent = parseFloat(input).toFixed(2) + 'x';
-      status.textContent = 'Manual prediction set ✅';
+      setTimeout(() => {
+        const aiGuess = generatePrediction();
+        const real = generateCrashMultiplier();
 
-      const time = new Date().toLocaleTimeString();
-      history.unshift(`${time} - Manual: ${parseFloat(input).toFixed(2)}x`);
-      if (history.length > 10) history.pop();
+        document.getElementById("prediction").innerText = aiGuess + "x";
+        document.getElementById("actual").innerText = real + "x";
+        document.getElementById("status").innerText = "✅ Prediction complete";
 
-      historyList.innerHTML = history.map(item => `<li>${item}</li>`).join('');
+        const now = new Date().toLocaleTimeString();
+        historyList.unshift(`${now} — Predicted: ${aiGuess}x | Real: ${real}x`);
+        if (historyList.length > 10) historyList.pop();
+
+        document.getElementById("historyList").innerHTML = historyList.map(i => `<div class="item">${i}</div>`).join("");
+      }, 1200);
     }
   </script>
+
 </body>
 </html>
