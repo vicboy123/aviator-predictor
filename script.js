@@ -1,97 +1,61 @@
-let balance = 10;
-let historyList = [];
+let balance = 10.0; let historyList = [];
 
-window.onload = function () {
-  const saved = localStorage.getItem("aviator_data");
-  if (saved) {
-    const data = JSON.parse(saved);
-    balance = data.balance || 10;
-    historyList = data.history || [];
-    updateBalance();
-    updateHistory();
-  }
-};
+window.onload = function () { const saved = localStorage.getItem("aviator_data"); if (saved) { const data = JSON.parse(saved); balance = data.balance || 10; historyList = data.history || []; updateBalance(); updateHistory(); } connectLiveData(); };
 
-function saveData() {
-  localStorage.setItem("aviator_data", JSON.stringify({
-    balance,
-    history: historyList
-  }));
-}
+function saveData() { localStorage.setItem( "aviator_data", JSON.stringify({ balance, history: historyList }) ); }
 
-function updateBalance() {
-  document.getElementById("balance").innerText = `💰 Balance: R${balance.toFixed(2)}`;
-}
+function updateBalance() { document.getElementById("balance").innerText = 💰 Balance: R${balance.toFixed( 2 )}; }
 
-function updateHistory() {
-  document.getElementById("historyList").innerHTML = historyList.map(i => `<div class="item">${i}</div>`).join("");
-}
+function updateHistory() { document.getElementById("historyList").innerHTML = historyList .map((i) => <div class="item">${i}</div>) .join(""); }
 
-function predictAndBet() {
-  const input = document.getElementById("inputData").value;
-  const crashes = input.split(",").map(x => parseFloat(x.trim())).filter(x => !isNaN(x));
-  const bet = parseFloat(document.getElementById("betAmount").value);
-  const target = parseFloat(document.getElementById("targetMultiplier").value);
+function calculatePrediction(parts) { const mean = parts.reduce((a, b) => a + b, 0) / parts.length; const variance = parts.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / parts.length; const stdDev = Math.sqrt(variance);
 
-  if (crashes.length < 3 || isNaN(bet) || isNaN(target)) {
-    document.getElementById("status").innerText = "⚠️ Fill all fields correctly.";
-    return;
-  }
+let prediction = mean + (Math.random() - 0.5) * stdDev; prediction = Math.max(1.00, Math.min(prediction, 10)).toFixed(2);
 
-  if (bet > balance || bet <= 0) {
-    document.getElementById("status").innerText = "❌ Invalid or insufficient bet.";
-    return;
-  }
+const zScore = (prediction - mean) / stdDev; const confidence = (1 - Math.min(Math.abs(zScore) / 3, 1)) * 100;
 
-  document.getElementById("status").innerText = "🔍 Analyzing...";
-  document.getElementById("prediction").innerText = "--";
-  document.getElementById("result").innerText = "--";
+return { prediction, confidence: confidence.toFixed(1) }; }
 
-  setTimeout(() => {
-    // Smart prediction: weighted average
-    const weights = crashes.map((_, i) => i + 1);
-    const weightSum = weights.reduce((a, b) => a + b, 0);
-    const weightedAvg = crashes.reduce((sum, val, i) => sum + val * weights[i], 0) / weightSum;
+function predictAndBet() { const input = document.getElementById("inputData").value; const parts = input .split(",") .map((x) => parseFloat(x.trim())) .filter((x) => !isNaN(x));
 
-    let predicted;
-    if (weightedAvg < 1.6) predicted = (Math.random() * 1 + 1.3);
-    else if (weightedAvg < 2.5) predicted = (Math.random() * 1.2 + 1.8);
-    else predicted = (Math.random() * 2 + 2.5);
+const bet = parseFloat(document.getElementById("betAmount").value); const target = parseFloat( document.getElementById("targetMultiplier").value );
 
-    predicted = +predicted.toFixed(2);
+if (parts.length < 5 || isNaN(bet) || isNaN(target)) { document.getElementById("status").innerText = "⚠️ Enter at least 5 valid crash multipliers."; return; }
 
-    const actual = +(Math.random() * 4 + 1).toFixed(2);
-    const win = actual >= target;
+if (bet > balance || bet <= 0) { document.getElementById("status").innerText = "❌ Invalid or insufficient bet."; return; }
 
-    const volatility = Math.max(...crashes) - Math.min(...crashes);
-    const confidence = Math.max(40, Math.min(95, 100 - volatility * 10)).toFixed(1);
+document.getElementById("status").innerText = "🔍 Calculating..."; document.getElementById("prediction").innerText = "--"; document.getElementById("result").innerText = "--";
 
-    let resultText = win ? `✅ WIN! R${(bet * target).toFixed(2)}` : `❌ Lost R${bet}`;
-    balance += win ? (bet * target) - bet : -bet;
+setTimeout(() => { const { prediction, confidence } = calculatePrediction(parts);
 
-    document.getElementById("status").innerText = `🎯 Target: ${target}x (Conf: ${confidence}%)`;
-    document.getElementById("prediction").innerText = `📈 AI Prediction: ${predicted}x`;
-    document.getElementById("result").innerText = `💥 Crashed at: ${actual}x → ${resultText}`;
-    updateBalance();
+const rand = Math.random();
+const actual = rand < 0.01 ? 1.0 : +(Math.floor((1 / (1 - rand)) * 100) / 100).toFixed(2);
+const win = actual >= target;
+const resultText = win
+  ? `✅ WIN! You got R${(bet * target).toFixed(2)}`
+  : `❌ Lost R${bet.toFixed(2)}`;
 
-    const now = new Date().toLocaleTimeString();
-    historyList.unshift(`${now} → Bet R${bet} @ ${target}x → Crash: ${actual}x → ${win ? 'WIN' : 'LOSE'}`);
-    if (historyList.length > 10) historyList.pop();
+balance += win ? bet * (target - 1) : -bet;
 
-    updateHistory();
-    saveData();
-  }, 1200);
-}
+document.getElementById("status").innerText = `🎯 Target: ${target}x`;
+document.getElementById("prediction").innerText = `🤖 Predicted: ${prediction}x | Confidence: ${confidence}%`;
+document.getElementById("result").innerText = `💥 Crashed at: ${actual}x → ${resultText}`;
 
-function resetAll() {
-  if (confirm("Reset all data?")) {
-    balance = 10;
-    historyList = [];
-    updateBalance();
-    updateHistory();
-    localStorage.removeItem("aviator_data");
-    document.getElementById("status").innerText = "🔄 Reset complete.";
-    document.getElementById("prediction").innerText = "--";
-    document.getElementById("result").innerText = "--";
-  }
-    }
+const now = new Date().toLocaleTimeString();
+historyList.unshift(
+  `${now} → Bet: R${bet} @ ${target}x → Crash: ${actual}x → ${
+    win ? "WIN" : "LOSE"
+  }`
+);
+if (historyList.length > 10) historyList.pop();
+
+updateBalance();
+updateHistory();
+saveData();
+
+}, 1500); }
+
+function resetAll() { if (confirm("Reset all data?")) { balance = 10; historyList = []; updateBalance(); updateHistory(); localStorage.removeItem("aviator_data"); document.getElementById("status").innerText = "🔄 Reset complete."; document.getElementById("prediction").innerText = "--"; document.getElementById("result").innerText = "--"; } }
+
+function connectLiveData() { try { const source = new EventSource("/api/stream"); source.onmessage = function (event) { const data = JSON.parse(event.data); if (data && data.crash) { document.getElementById("streamStatus").innerText = Live: Last crash ${data.crash}x; } }; source.onerror = function () { document.getElementById("streamStatus").innerText = "Live: Connection failed."; }; } catch (e) { document.getElementById("streamStatus").innerText = "Live: Not available."; } }
+
