@@ -1,61 +1,39 @@
-let balance = 10.0; let historyList = [];
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Aviator Predictor – Level 5</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    body { font-family: sans-serif; padding: 20px; background: #f9f9f9; }
+    .container { max-width: 500px; margin: auto; padding: 20px; background: white; border-radius: 12px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    input, button { width: 100%; padding: 10px; margin: 5px 0; border-radius: 8px; border: 1px solid #ccc; }
+    button { background-color: #007bff; color: white; border: none; font-weight: bold; }
+    #prediction, #result, #status, #streamStatus { margin-top: 10px; font-size: 1.1em; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🛩️ Aviator Predictor (Level 5)</h1>
+    <p id="balance">💰 Balance: R10.00</p>
+    
+    <input id="inputData" placeholder="Enter last 10 crashes (optional)" />
+    <input id="betAmount" type="number" placeholder="Bet Amount (R)" />
+    <input id="targetMultiplier" type="number" placeholder="Target Multiplier (e.g. 2.00)" />
+    
+    <button onclick="predictAndBet()">🎯 Predict & Bet</button>
+    <button onclick="resetAll()">♻️ Reset</button>
 
-window.onload = function () { const saved = localStorage.getItem("aviator_data"); if (saved) { const data = JSON.parse(saved); balance = data.balance || 10; historyList = data.history || []; updateBalance(); updateHistory(); } connectLiveData(); };
+    <p id="status">Status will appear here...</p>
+    <p id="prediction">--</p>
+    <p id="result">--</p>
 
-function saveData() { localStorage.setItem( "aviator_data", JSON.stringify({ balance, history: historyList }) ); }
+    <div id="streamStatus">Live: Not connected</div>
+    <div id="historyList"></div>
+  </div>
 
-function updateBalance() { document.getElementById("balance").innerText = 💰 Balance: R${balance.toFixed( 2 )}; }
-
-function updateHistory() { document.getElementById("historyList").innerHTML = historyList .map((i) => <div class="item">${i}</div>) .join(""); }
-
-function calculatePrediction(parts) { const mean = parts.reduce((a, b) => a + b, 0) / parts.length; const variance = parts.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / parts.length; const stdDev = Math.sqrt(variance);
-
-let prediction = mean + (Math.random() - 0.5) * stdDev; prediction = Math.max(1.00, Math.min(prediction, 10)).toFixed(2);
-
-const zScore = (prediction - mean) / stdDev; const confidence = (1 - Math.min(Math.abs(zScore) / 3, 1)) * 100;
-
-return { prediction, confidence: confidence.toFixed(1) }; }
-
-function predictAndBet() { const input = document.getElementById("inputData").value; const parts = input .split(",") .map((x) => parseFloat(x.trim())) .filter((x) => !isNaN(x));
-
-const bet = parseFloat(document.getElementById("betAmount").value); const target = parseFloat( document.getElementById("targetMultiplier").value );
-
-if (parts.length < 5 || isNaN(bet) || isNaN(target)) { document.getElementById("status").innerText = "⚠️ Enter at least 5 valid crash multipliers."; return; }
-
-if (bet > balance || bet <= 0) { document.getElementById("status").innerText = "❌ Invalid or insufficient bet."; return; }
-
-document.getElementById("status").innerText = "🔍 Calculating..."; document.getElementById("prediction").innerText = "--"; document.getElementById("result").innerText = "--";
-
-setTimeout(() => { const { prediction, confidence } = calculatePrediction(parts);
-
-const rand = Math.random();
-const actual = rand < 0.01 ? 1.0 : +(Math.floor((1 / (1 - rand)) * 100) / 100).toFixed(2);
-const win = actual >= target;
-const resultText = win
-  ? `✅ WIN! You got R${(bet * target).toFixed(2)}`
-  : `❌ Lost R${bet.toFixed(2)}`;
-
-balance += win ? bet * (target - 1) : -bet;
-
-document.getElementById("status").innerText = `🎯 Target: ${target}x`;
-document.getElementById("prediction").innerText = `🤖 Predicted: ${prediction}x | Confidence: ${confidence}%`;
-document.getElementById("result").innerText = `💥 Crashed at: ${actual}x → ${resultText}`;
-
-const now = new Date().toLocaleTimeString();
-historyList.unshift(
-  `${now} → Bet: R${bet} @ ${target}x → Crash: ${actual}x → ${
-    win ? "WIN" : "LOSE"
-  }`
-);
-if (historyList.length > 10) historyList.pop();
-
-updateBalance();
-updateHistory();
-saveData();
-
-}, 1500); }
-
-function resetAll() { if (confirm("Reset all data?")) { balance = 10; historyList = []; updateBalance(); updateHistory(); localStorage.removeItem("aviator_data"); document.getElementById("status").innerText = "🔄 Reset complete."; document.getElementById("prediction").innerText = "--"; document.getElementById("result").innerText = "--"; } }
-
-function connectLiveData() { try { const source = new EventSource("/api/stream"); source.onmessage = function (event) { const data = JSON.parse(event.data); if (data && data.crash) { document.getElementById("streamStatus").innerText = Live: Last crash ${data.crash}x; } }; source.onerror = function () { document.getElementById("streamStatus").innerText = "Live: Connection failed."; }; } catch (e) { document.getElementById("streamStatus").innerText = "Live: Not available."; } }
-
+  <script src="predict.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
